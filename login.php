@@ -7,6 +7,24 @@
     echo '<br>';
     echo '<br>';
     echo '<br>';
+     var_dump($_SESSION);
+     var_dump($_COOKIE);
+
+      // if (!empty($_POST)) {
+      //     if ($_POST['email'] == '') {
+      //         $error['email'] = 'blank';
+      //     }
+      //     if ($_POST['password'] == '') {
+      //         $error['password'] = 'blank';
+      //     }  elseif ($_POST['password'] == '') {
+      //         $error['password'] = 'length';
+      //     }
+      // }
+
+       if (isset($_COOKIE['email'])) {
+           $_POST['email'] = $_COOKIE['email'];
+           $_POST['password'] = $_COOKIE['password'];
+       }
 
     if (!empty($_POST)) {
         $sql = 'SELECT * FROM `members` WHERE `email`=? AND `password`=?';
@@ -27,10 +45,10 @@
                 setcookie('email', $_POST['email'], time()+60*60*24*14);
                 setcookie('password', $_POST['password'], time()+60*60*24*14);
 
-                header('Location: index.php');
+                
 
             }
-
+           header('Location: index.php');
         }
 
     }
