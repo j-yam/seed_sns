@@ -1,62 +1,43 @@
-<?php
+<?php 
     
     session_start();
     require('db_connect.php');
+           
+           echo '<br>';
+           echo '<br>';
+           echo '<br>';
+           echo '<br>';
 
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-     var_dump($_SESSION);
-     var_dump($_COOKIE);
+           var_dump($_POST);
 
-      // if (!empty($_POST)) {
-      //     if ($_POST['email'] == '') {
-      //         $error['email'] = 'blank';
-      //     }
-      //     if ($_POST['password'] == '') {
-      //         $error['password'] = 'blank';
-      //     }  elseif ($_POST['password'] == '') {
-      //         $error['password'] = 'length';
-      //     }
-      // }
-
-       if (isset($_COOKIE['email'])) {
-           $_POST['email'] = $_COOKIE['email'];
-           $_POST['password'] = $_COOKIE['password'];
-       }
-
+            
     if (!empty($_POST)) {
-        $sql = 'SELECT * FROM `members` WHERE `email`=? AND `password`=?';
+
+        $sql = 'SELECT * FROM `members` WHERE `email`=? AND `password`=? ';
         $data = array($_POST['email'], sha1($_POST['password']));
         $stmt = $dbh->prepare($sql);
         $stmt->execute($data);
-
         $member = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+        echo '<pre>';
+        var_dump($member);
+        echo '</pre>';
         if ($member == false) {
             $error['login'] = 'failed';
-        }  else {
+        } else {
             $_SESSION['login_id'] = $member['member_id'];
             $_SESSION['time'] = time();
-
-
-            if ($_POST['save'] == 'on') {
+            if (isset($_POST['save']) == 'on') {
                 setcookie('email', $_POST['email'], time()+60*60*24*14);
                 setcookie('password', $_POST['password'], time()+60*60*24*14);
-
-                
-
             }
-           header('Location: index.php');
+          header('Location: index.php');
         }
 
     }
 
-
  ?>
 
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ja">
   <head>
     <meta charset="utf-8">
@@ -115,18 +96,16 @@
               <input type="password" name="password" class="form-control" placeholder="">
             </div>
           </div>
-          <!-- 自動ログイン -->
           <div class="form-group">
             <label class="col-sm-4 control-label">自動ログイン</label>
             <div class="col-sm-8">
               <input type="checkbox" name="save" value="on">
             </div>
           </div>
-          <!-- ログイン失敗したとき -->
           <?php if (isset($error['login']) && $error['login'] == 'failed') { ?>
-            <p class="error">メールアドレス、またはパスワードが一致しません。</p>
+            <p class="error">* メールアドレス、またはパスワードが一致しません。</p>
           <?php } ?>
-          <input type="submit" class="btn btn-default" value="ログイン"> &nbsp;|&nbsp;
+          <input type="submit" class="btn btn-default" value="ログイン">
           <a href="join/index.php" class="btn btn-default">会員登録</a>
         </form>
       </div>

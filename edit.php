@@ -1,31 +1,36 @@
 <?php
+
     session_start();
     require('db_connect.php');
 
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-
-    if (!empty($_GET)) {
-          $sql = 'SELECT `tweets`.*, `members`.`nickname`, `members`.`email`, `members`.`picture_path` FROM `tweets` LEFT JOIN `members` ON `tweets`.`member_id`=`members`.`member_id` WHERE `tweets`.`tweet_id`=?';
-          $data = array($_GET['tweet_id']);
-          $stmt = $dbh->prepare($sql);
-          $stmt->execute($data);
-          $tweet = $stmt->fetch(PDO::FETCH_ASSOC);
-           echo '<pre>';
-           var_dump($tweet);
-           echo '</pre>';
-
-        
+    if (!isset($_SESSION)) {
+        header('Location: login.php');
     } else {
-          header('Location: login.php');
+        $sql = 'SELECT * FROM `tweets` WHERE `tweet_id`=? ';
+        $data = array($_GET['tweet_id']);
+        $stmt = $dbh->prepare($sql);
+        $stmt->execute($data);
+        $tweet = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($_POST) {
+              if ($_POST['tweet'] == '') {
+                  $error['tweet'] = 'blank';
+              }
+
+              if (!isset($error)) {
+                 $sql = 'UPDATE `tweets` SET `tweet`=? WHERE `tweet_id`=? ';
+                 $data =array($_POST['tweet'], $_GET['tweet_id']);
+                 $stmt = $dbh->prepare($sql);
+                 $stmt->execute($data);
+                 header('Location: index.php');
+              }
+        }
+
     }
-  
-?>
 
+ ?>
 
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ja">
   <head>
     <meta charset="utf-8">
@@ -53,7 +58,7 @@
                   <span class="icon-bar"></span>
                   <span class="icon-bar"></span>
               </button>
-              <a class="navbar-brand" href="index.html"><span class="strong-title"><i class="fa fa-twitter-square"></i> Seed SNS</span></a>
+              <a class="navbar-brand" href="index.php"><span class="strong-title"><i class="fa fa-twitter-square"></i> Seed SNS</span></a>
           </div>
           <!-- Collect the nav links, forms, and other content for toggling -->
           <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -68,22 +73,24 @@
 
   <div class="container">
     <div class="row">
-      <div class="col-md-4 col-md-offset-4 content-margin-top">
+      <div class="col-md-6 col-md-offset-3 content-margin-top">
+        <h4>つぶやき編集</h4>
         <div class="msg">
-          <img src="picture_path/<?php echo $tweet['picture_path']; ?>" width="100" height="100">
-          <p>投稿者 : <span class="name"> <?php echo $tweet['nickname']; ?> </span></p>
-          <p>
-            つぶやき : <br>
-            <?php echo $tweet['tweet']; ?>
-          </p>
-          <p class="day">
-            <?php echo $tweet['created']; ?>
-            <?php if ($_SESSION['login_id'] == $tweet['member_id']): ?>
-              [<a href="edit.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #00994C;">編集</a>]
-              [<a href="delete.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #F33;">削除</a>]
-            <?php endif ?>
-
-          </p>
+          <form method="post" action="" class="form-horizontal" role="form">
+              <!-- つぶやき -->
+              <div class="form-group">
+                <label class="col-sm-4 control-label">つぶやき</label>
+                <div class="col-sm-8">
+                  <textarea name="tweet" cols="50" rows="5" class="form-control" placeholder="例：Hello World!"><?php echo $tweet['tweet']; ?></textarea>
+                  <?php if (isset($error['tweet']) && $error['tweet'] == 'blank') { ?>
+                    <p>* 入力してください。</p>
+                  <?php } ?>
+                </div>
+              </div>
+            <ul class="paging">
+              <input type="submit" class="btn btn-info" value="変更保存">
+            </ul>
+          </form>
         </div>
         <a href="index.php">&laquo;&nbsp;一覧へ戻る</a>
       </div>

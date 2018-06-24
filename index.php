@@ -2,30 +2,80 @@
     session_start();
     require('db_connect.php');
 
-
-
     echo '<br>';
     echo '<br>';
     echo '<br>';
     echo '<br>';
 
+    var_dump($_SESSION);
 
-    if (!isset($_SESSION['login_id'])) {
-        header('Location: login.php');
+    if (isset($_SESSION['login_id']) && $_SESSION['time'] + 3600 > time()) {
+          $_SESSION['time'] = time();
+          $sql = 'SELECT * FROM `members` WHERE `member_id`=? ';
+          $data = array($_SESSION['login_id']);
+          $stmt = $dbh->prepare($sql);
+          $stmt->execute($data);
+          $login_member = $stmt->fetch(PDO::FETCH_ASSOC);
+
     } else {
-        
-        $sql = 'SELECT * FROM `members` WHERE `member_id`=?';
-        $data = array($_SESSION['login_id']);
-        $stmt = $dbh->prepare($sql);
-        $stmt->execute($data);
-        
-        $login_member = $stmt->fetch(PDO::FETCH_ASSOC);
+        header('Location: login.php');
+    }
+
+    if (!empty($_POST)) {
+          if ($_POST['tweet'] == '') {
+                $error['tweet'] = 'blank';
+          }
+
+          if (!isset($error)) {
+                $sql = 'INSERT INTO `tweets` SET `tweet`=?, `member_id`=?, `reply_tweet_id`=-1, `created`=NOW() ';
+                $data = array($_POST['tweet'], $login_member['member_id'],);
+                $stmt = $dbh->prepare($sql);
+                $stmt->execute($data);
+
+          }
 
     }
 
- ?>
+          if (isset($_GET['page'])) {
+              $page = $_GET[ 'page'];
+          } else {
+              $page = 1;
+          }
 
-<!DOCTYPE html>
+              $page = max($page, 1);
+              $max_page_tweet = 5;
+
+              $page_sql = 'SELECT COUNT(*) AS `count` FROM `tweets` WHERE `delete_flag`=0 ';
+              $page_stmt = $dbh->prepare($page_sql);
+              $page_stmt->execute();
+
+              $max_tweets = $page_stmt->fetch(PDO::FETCH_ASSOC);
+              $all_pages_number = ceil($max_tweets['count'] / $max_page_tweet);
+              $page = min($page, $all_pages_number);
+
+              $start_page = ($page -1) * $max_page_tweet;
+
+
+
+
+          $tweet_sql = 'SELECT `tweets`.*, `members`.`nickname`, `members`.`email`, `members`.`picture_path` FROM `tweets` LEFT JOIN `members` ON `tweets`.`member_id`=`members`.`member_id` WHERE `delete_flag`=0 ORDER BY `tweets`.`created` DESC LIMIT '.$start_page.','.$max_page_tweet;
+          $tweet_stmt = $dbh->prepare($tweet_sql);
+          $tweet_stmt->execute();
+
+
+          $tweets = array();
+
+          while (true) {
+                $tweet = $tweet_stmt->fetch(PDO::FETCH_ASSOC);
+                if ($tweet == false) {
+                  break;
+                }
+                $tweets[] = $tweet;
+          }
+
+
+ ?>
+ <!DOCTYPE html>
 <html lang="ja">
   <head>
     <meta charset="utf-8">
@@ -69,7 +119,7 @@
   <div class="container">
     <div class="row">
       <div class="col-md-4 content-margin-top">
-        <legend>ようこそ<?php echo $login_member['nickname']; ?>さん！</legend>
+        <legend>ようこそ<a href="login_user.php?member_id=<?php echo $login_member['member_id']; ?>"><?php echo $login_member['nickname']; ?></a>さん！</legend>
         <form method="post" action="" class="form-horizontal" role="form">
             <!-- つぶやき -->
             <div class="form-group">
@@ -81,70 +131,40 @@
           <ul class="paging">
             <input type="submit" class="btn btn-info" value="つぶやく">
                 &nbsp;&nbsp;&nbsp;&nbsp;
-                <li><a href="index.html" class="btn btn-default">前</a></li>
+                <?php if ($page != 1) { ?>
+                <li><a href="index.php?page=<?php echo $page -1; ?>" class="btn btn-default">前</a></li>
+                <?php } else { ?>
+                  <li>*前</li>
+                <?php } ?>
                 &nbsp;&nbsp;|&nbsp;&nbsp;
-                <li><a href="index.html" class="btn btn-default">次</a></li>
+                <?php if ($page != $all_pages_number) { ?>
+                <li><a href="index.php?page=<?php echo $page + 1; ?>" class="btn btn-default">次</a></li>
+                <?php } else { ?>
+                  <li>*次</li>
+                <?php } ?>
           </ul>
         </form>
       </div>
 
       <div class="col-md-8 content-margin-top">
+       <?php foreach ($tweets as $tweet) { ?>
         <div class="msg">
-          <img src="http://c85c7a.medialib.glogster.com/taniaarca/media/71/71c8671f98761a43f6f50a282e20f0b82bdb1f8c/blog-images-1349202732-fondo-steve-jobs-ipad.jpg" width="48" height="48">
+          <img src="picture_path/<?php echo $tweet['picture_path']; ?>" width="48" height="48">
           <p>
-            つぶやき４<span class="name"> (Seed kun) </span>
-            [<a href="#">Re</a>]
+            <?php echo $tweet['tweet']; ?><span class="name"><a href="profile.php?member_id=<?php echo $tweet['member_id']; ?>"> (<?php echo $tweet['nickname']; ?>)</a> </span>
+            [<a href="reply.php?tweet_id=<?php echo $tweet['tweet_id']; ?>">Re</a>]
           </p>
           <p class="day">
-            <a href="view.html">
-              2016-01-28 18:04
+            <a href="view.php?tweet_id=<?php echo $tweet['tweet_id']; ?>">
+              <?php echo $tweet['created']; ?>
             </a>
-            [<a href="#" style="color: #00994C;">編集</a>]
-            [<a href="#" style="color: #F33;">削除</a>]
+            <?php if ($login_member['member_id'] == $tweet['member_id']): ?>
+            [<a href="edit.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #00994C;">編集</a>]
+            [<a href="delete.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #F33;">削除</a>]
+            <?php endif ?>
           </p>
         </div>
-        <div class="msg">
-          <img src="http://c85c7a.medialib.glogster.com/taniaarca/media/71/71c8671f98761a43f6f50a282e20f0b82bdb1f8c/blog-images-1349202732-fondo-steve-jobs-ipad.jpg" width="48" height="48">
-          <p>
-            つぶやき３<span class="name"> (Seed kun) </span>
-            [<a href="#">Re</a>]
-          </p>
-          <p class="day">
-            <a href="view.html">
-              2016-01-28 18:03
-            </a>
-            [<a href="#" style="color: #00994C;">編集</a>]
-            [<a href="#" style="color: #F33;">削除</a>]
-          </p>
-        </div>
-        <div class="msg">
-          <img src="http://c85c7a.medialib.glogster.com/taniaarca/media/71/71c8671f98761a43f6f50a282e20f0b82bdb1f8c/blog-images-1349202732-fondo-steve-jobs-ipad.jpg" width="48" height="48">
-          <p>
-            つぶやき２<span class="name"> (Seed kun) </span>
-            [<a href="#">Re</a>]
-          </p>
-          <p class="day">
-            <a href="view.html">
-              2016-01-28 18:02
-            </a>
-            [<a href="#" style="color: #00994C;">編集</a>]
-            [<a href="#" style="color: #F33;">削除</a>]
-          </p>
-        </div>
-        <div class="msg">
-          <img src="http://c85c7a.medialib.glogster.com/taniaarca/media/71/71c8671f98761a43f6f50a282e20f0b82bdb1f8c/blog-images-1349202732-fondo-steve-jobs-ipad.jpg" width="48" height="48">
-          <p>
-            つぶやき１<span class="name"> (Seed kun) </span>
-            [<a href="#">Re</a>]
-          </p>
-          <p class="day">
-            <a href="view.html">
-              2016-01-28 18:01
-            </a>
-            [<a href="#" style="color: #00994C;">編集</a>]
-            [<a href="#" style="color: #F33;">削除</a>]
-          </p>
-        </div>
+       <?php } ?>
       </div>
 
     </div>

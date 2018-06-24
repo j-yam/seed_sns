@@ -1,5 +1,4 @@
-<?php
-    
+<?php 
     session_start();
     require('../db_connect.php');
 
@@ -9,71 +8,63 @@
     echo '<br>';
 
     if (!empty($_GET['action']) && $_GET['action'] == 'rewrite') {
-       
-       $nickname = $_SESSION['join']['nickname'];
-       $email = $_SESSION['join']['email'];
-       $password = $_SESSION['join']['password'];
+           $nickname = $_SESSION['join']['nickname'];
+           $email = $_SESSION['join']['email'];
+           $password = $_SESSION['join']['password'];
     } else {
-       $nickname = '';
-       $email = '';
-       $password = '';
-
+          $nickname = '';
+          $email = '';
+          $password = '';
     }
 
     if (!empty($_POST)) {
-      
-      if ($_POST['nickname'] == '') {
-          $error['nickname'] = 'blank';
-      }
-      if ($_POST['email'] == '') {
-          $error['email'] = 'blank';
-      }
-      if ($_POST['password'] == '') {
-          $error['password'] = 'blank';
-      } elseif (mb_strlen($_POST['password']) < 4) {
-          $error['password'] = 'length';
-      }
+        if ($_POST['nickname'] == '') {
+            $error['nickname'] = 'blank';
+        }
+        if ($_POST['email'] == '') {
+            $error['email'] = 'blank';
+        }
+        if ($_POST['password'] == '') {
+            $error['password'] = 'blank';
+        } elseif (mb_strlen($_POST['password']) < 4) {
+            $error['password'] = 'length';
+        }
 
+        if (!isset($error)) {
+            $sql = 'SELECT COUNT(email) AS `count` FROM `members` WHERE `email`=? ';
+            $data = array($_POST['email']);
+            $stmt = $dbh->prepare($sql);
+            $stmt->execute($data);
+            $email_count = $stmt->fetch(PDO::FETCH_ASSOC);
 
-      if (!isset($error)) {
-          $sql = 'SELECT COUNT(`email`) AS `count` FROM `members` WHERE `email`=?';
-          $data = array($_POST['email']);
-          $stmt = $dbh->prepare($sql);
-          $stmt->execute($data);
+            var_dump($email_count);
+            if ($email_count['count'] >= 1) {
+                $error['email'] = 'duplicated';
+            }
+            if (!isset($error)) {
+                $ext = substr($_FILES['picture_path']['name'], -3);
+                if ($ext == 'jpg' || $ext == 'png' || $ext == 'gif') {
+                    $picture_name = date('Y.m.d') . $_FILES['picture_path']['name'];
+                    move_uploaded_file($_FILES['picture_path']['tmp_name'], '../picture_path/' . $picture_name);
+                    $_SESSION['join'] = $_POST;
+                    $_SESSION['join']['picture_path'] = $picture_name;
+                     header('Location: check.php');
 
-          $email_count = $stmt->fetch(PDO::FETCH_ASSOC);
+                } else {
+                    $error['picture_path'] = 'type';
+                }
+            }
 
-          if ($email_count['count'] >= 1) {
-              $error['email'] = 'duplicated';
-          } else {
-              $ext = substr($_FILES['picture_path']['name'], -3);
-              if ($ext == 'jpg' || $ext == 'png' || $ext == 'gif') {
-                $picture_path = date('YmdHis') . $_FILES['picture_path']['name'];
-
-                move_uploaded_file($_FILES['picture_path']['tmp_name'], '../picture_path/' . $picture_path);
-
-                $_SESSION['join'] = $_POST;
-                $_SESSION['join']['picture_path'] = $picture_path;
-
-                 header('Location: check.php');
-
-              } else {
-                  $error['picture_path'] = 'type';
-              }
-
-
-          }
-
-
-
-      }
-
+        }
 
     }
 
-?>
 
-<!DOCTYPE html>
+
+
+ ?>
+
+ <!DOCTYPE html>
 <html lang="ja">
   <head>
     <meta charset="utf-8">
@@ -120,17 +111,14 @@
     <div class="row">
       <div class="col-md-6 col-md-offset-3 content-margin-top">
         <legend>会員登録</legend>
-        <!-- enctype="multipart/form-data" -->
-        <!-- ファイルの送信時にformタグ内に記載する必要がある -->
-        <!-- 記載しなければPOST送信では、画像の名前しか送られない -->
-        <form method="POST" action="" class="form-horizontal" role="form" enctype="multipart/form-data">
+        <form method="post" action="" class="form-horizontal" role="form" enctype="multipart/form-data">
           <!-- ニックネーム -->
           <div class="form-group">
             <label class="col-sm-4 control-label">ニックネーム</label>
             <div class="col-sm-8">
               <input type="text" name="nickname" class="form-control" placeholder="例： Seed kun" value="<?php echo $nickname; ?>">
-              <?php if (isset($error['nickname'])) { ?>
-                <p class="error">* ニックネームを入力してください</p>
+              <?php if (isset($error['nickname']) && $error['nickname'] == 'blank' ) { ?>
+                <p class="error">* ニックネームが書かれていません。</p>
               <?php } ?>
             </div>
           </div>
@@ -140,21 +128,21 @@
             <div class="col-sm-8">
               <input type="email" name="email" class="form-control" placeholder="例： seed@nex.com" value="<?php echo $email; ?>">
               <?php if (isset($error['email']) && $error['email'] == 'blank') { ?>
-                <p class="error">* メールアドレスを入力してください</p>
+                <p class="error">* メールアドレスが書かれていません。</p>
               <?php } elseif (isset($error['email']) && $error['email'] == 'duplicated') { ?>
-                <p class="error">* 入力されたメールアドレスは登録済みです</p>
+                <p class="error">* すでに登録されていれるメールアドレスです。</p>
               <?php } ?>
             </div>
-          </div>
+          </div>a
           <!-- パスワード -->
           <div class="form-group">
             <label class="col-sm-4 control-label">パスワード</label>
             <div class="col-sm-8">
-              <input type="password" name="password" class="form-control" value="<?php echo $password; ?>">
+              <input type="password" name="password" class="form-control" placeholder="" value="<?php echo $password; ?>">
               <?php if (isset($error['password']) && $error['password'] == 'blank') { ?>
-                <p class="error">* パスワードを入力してください</p>
-              <?php } elseif(isset($error['password']) && $error['password'] == 'length') { ?>
-                <p class="error">パスワードは4文字以上入力してください</p>
+                <p class="error">* パスワードが書かれていません。</p>
+              <?php } elseif (isset($error['password']) && $error['password'] == 'length') { ?>
+                <p class="error">* 4文字以上で入力してください。</p>
               <?php } ?>
             </div>
           </div>
@@ -163,13 +151,12 @@
             <label class="col-sm-4 control-label">プロフィール写真</label>
             <div class="col-sm-8">
               <input type="file" name="picture_path" class="form-control">
-              <?php if (isset($error['picture_path']) && $error['picture_path'] == 'type') { ?>
-                <p class="error">* jpgまたはpngまたはgifのみ使用できます</p>
-              <?php } ?>
             </div>
+            <?php if (isset($error['picture_path']) && $error['picture_path'] == 'type') { ?>
+                <p class="error">* jpgまたはpngまたはgifのみ使用できます。</p>
+            <?php } ?>
           </div>
-
-          <input type="submit" class="btn btn-default" value="確認画面へ"> &nbsp;|&nbsp;
+          <input type="submit" class="btn btn-default" value="確認画面へ">
           <a href="../login.php" class="btn btn-default">ログイン</a>
         </form>
       </div>

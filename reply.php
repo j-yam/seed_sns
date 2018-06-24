@@ -2,28 +2,41 @@
     session_start();
     require('db_connect.php');
 
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-
-    if (!empty($_GET)) {
-          $sql = 'SELECT `tweets`.*, `members`.`nickname`, `members`.`email`, `members`.`picture_path` FROM `tweets` LEFT JOIN `members` ON `tweets`.`member_id`=`members`.`member_id` WHERE `tweets`.`tweet_id`=?';
-          $data = array($_GET['tweet_id']);
-          $stmt = $dbh->prepare($sql);
-          $stmt->execute($data);
-          $tweet = $stmt->fetch(PDO::FETCH_ASSOC);
-           echo '<pre>';
-           var_dump($tweet);
-           echo '</pre>';
-
-        
+    if (isset($_SESSION['login_id']) && $_SESSION['time'] +3600 > time()) {
+        $_SESSION['time'] = time();
     } else {
-          header('Location: login.php');
+        header('Location: login.php');
     }
-  
-?>
+    echo '<br>';
+    echo '<br>';
+    echo '<br>';
+    echo '<br>';
+    echo '<pre>';
+    var_dump($_POST);
+    echo '</pre>';
+         if (!empty($_POST)) {
+             if ($_POST['tweet'] == '') {
+                 $error['tweet'] = 'blank';
+             }
+             if (!isset($error)) {
+                 $sql = 'INSERT INTO `tweets` SET `tweet`=?, `member_id`=?, `reply_tweet_id`=?, `created`=NOW() ';
+                 $data = array($_POST['tweet'], $_SESSION['login_id'], $_GET['tweet_id']);
+                 $stmt = $dbh->prepare($sql);
+                 $stmt->execute($data);
+                 header('Location: index.php');
+             }
+         }
 
+        $sql = 'SELECT * FROM `tweets` LEFT JOIN `members` ON `tweets`.`member_id`=`members`.`member_id` WHERE `tweets`.`tweet_id`=?';
+        $data = array($_GET['tweet_id']);
+        $stmt = $dbh->prepare($sql);
+        $stmt->execute($data);
+        $member = $stmt->fetch(PDO::FETCH_ASSOC);
+        echo '<pre>';
+        var_dump($member);
+        echo '</pre>';
+        $reply = '@'.$member['nickname'].'('.$member['tweet'].')';
+?>
 
 <!DOCTYPE html>
 <html lang="ja">
@@ -68,22 +81,24 @@
 
   <div class="container">
     <div class="row">
-      <div class="col-md-4 col-md-offset-4 content-margin-top">
+      <div class="col-md-6 col-md-offset-3 content-margin-top">
+        <h4><?php echo $reply; ?>へ返信</h4>
         <div class="msg">
-          <img src="picture_path/<?php echo $tweet['picture_path']; ?>" width="100" height="100">
-          <p>投稿者 : <span class="name"> <?php echo $tweet['nickname']; ?> </span></p>
-          <p>
-            つぶやき : <br>
-            <?php echo $tweet['tweet']; ?>
-          </p>
-          <p class="day">
-            <?php echo $tweet['created']; ?>
-            <?php if ($_SESSION['login_id'] == $tweet['member_id']): ?>
-              [<a href="edit.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #00994C;">編集</a>]
-              [<a href="delete.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #F33;">削除</a>]
-            <?php endif ?>
-
-          </p>
+          <form method="post" action="" class="form-horizontal" role="form">
+              <!-- つぶやき -->
+              <div class="form-group">
+                <label class="col-sm-4 control-label">返信内容</label>
+                <div class="col-sm-8">
+                  <textarea name="tweet" cols="50" rows="5" class="form-control" placeholder="例：Hello World!"></textarea>
+                  <?php if (isset($error['tweet']) && $error['tweet'] == 'blank'): ?>
+                    <p>* 返信が書かれていません。</p>
+                  <?php endif ?>
+                </div>
+              </div>
+            <ul class="paging">
+              <input type="submit" class="btn btn-warning" value="返信する">
+            </ul>
+          </form>
         </div>
         <a href="index.php">&laquo;&nbsp;一覧へ戻る</a>
       </div>

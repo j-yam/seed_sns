@@ -1,33 +1,38 @@
 <?php 
+
     session_start();
     require('../db_connect.php');
+    echo '<br>';
+    echo '<br>';
+    echo '<br>';
+    echo '<br>';
+    echo '<pre>';
+    var_dump($_SESSION);
+    echo '</pre>';
 
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-    echo '<br>';
-
-    $nickname = htmlspecialchars($_SESSION['join']['nickname']);
-    $email = htmlspecialchars($_SESSION['join']['email']);
-    $password = htmlspecialchars($_SESSION['join']['password']);
-    $picture_path = $_SESSION['join']['picture_path'];
-
+    if (isset($_SESSION)) {
+        $nickname = htmlspecialchars($_SESSION['join']['nickname']);
+        $email = htmlspecialchars($_SESSION['join']['email']);
+        $password = htmlspecialchars($_SESSION['join']['password']);
+        $picture_path = $_SESSION['join']['picture_path'];
+    } else {
+        header('Location: index.php');
+    }
     if (!empty($_POST)) {
-        $sql = 'INSERT INTO `members` SET `nickname`=?, `email`=?, `password`=?, `created`=NOW()';
-        $data = array($nickname, $email, $password,);
+        $sql = 'INSERT INTO `members` SET `nickname`=?, `email`=?, `password`=?, `picture_path`=?, `created`=NOW() ';
+        $data = array($nickname, $email, sha1($password), $picture_path);
         $stmt = $dbh->prepare($sql);
         $stmt->execute($data);
-        
-        unset($_SESSION);
-        header('Location: thanks.php');
 
+        unset($_SESSION['join']);
+        header('Location: thanks.php');
     }
-    
+
 
 
  ?>
 
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="ja">
   <head>
     <meta charset="utf-8">
@@ -93,12 +98,12 @@
                 </tr>
                 <tr>
                   <td><div class="text-center">プロフィール画像</div></td>
-                  <td><div class="text-center"><img src="../picture_path/<?php echo $_SESSION['join']['picture_path']; ?>" width="100" height="100"></div></td>
+                  <td><div class="text-center"><img src="../picture_path/<?php echo $picture_path; ?>" width="100" height="100"></div></td>
                 </tr>
               </tbody>
             </table>
 
-            <a href="index.php?action=wrerite">&laquo;&nbsp;書き直す</a> |
+            <a href="index.php?action=rewrite">&laquo;&nbsp;書き直す</a> |
             <input type="submit" class="btn btn-default" value="会員登録">
           </div>
         </form>
