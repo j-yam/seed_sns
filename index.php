@@ -7,7 +7,7 @@
     echo '<br>';
     echo '<br>';
 
-    var_dump($_SESSION);
+   // var_dump($_SESSION);
 
     if (isset($_SESSION['login_id']) && $_SESSION['time'] + 3600 > time()) {
           $_SESSION['time'] = time();
@@ -70,8 +70,31 @@
                 if ($tweet == false) {
                   break;
                 }
+                $like_sql = 'SELECT COUNT(*) AS `like_count` FROM `likes` WHERE `tweet_id`=?';
+                $like_data = array($tweet['tweet_id']);
+                $like_stmt = $dbh->prepare($like_sql);
+                $like_stmt->execute($like_data);
+                $tweet_likes = $like_stmt->fetch(PDO::FETCH_ASSOC);
+                var_dump($tweet_likes['like_count']);
+                $tweet['tweet_likes'] = $tweet_likes['like_count'];
+
+                $login_like_sql = 'SELECT COUNT(*) AS `like_count` FROM `likes` WHERE `tweet_id`=? AND `member_id`=?';
+                $login_like_data = array($tweet['tweet_id'], $login_member['member_id']);
+                $login_like_stmt = $dbh->prepare($login_like_sql);
+                $login_like_stmt->execute($login_like_data);
+                $login_count = $login_like_stmt->fetch(PDO::FETCH_ASSOC);
+                // var_dump($login_count['like_count']);
+                $tweet['like_count'] = $login_count['like_count'];
+
                 $tweets[] = $tweet;
+
+
           }
+
+
+            echo '<pre>';
+            var_dump($tweets);
+            echo '</pre>';
 
 
  ?>
@@ -162,6 +185,8 @@
             [<a href="edit.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #00994C;">編集</a>]
             [<a href="delete.php?tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: #F33;">削除</a>]
             <?php endif ?>
+            <a href="like.php?like_tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: blue;"><i class="fa fa-thumbs-o-up">[いいね]</i></a>
+            <a href="like.php?dislike_tweet_id=<?php echo $tweet['tweet_id']; ?>" style="color: blue;"><i class="fa fa-thumbs-o-down">[よくないね]</i></a>
           </p>
         </div>
        <?php } ?>
@@ -176,3 +201,4 @@
     <script src="assets/js/bootstrap.js"></script>
   </body>
 </html>
+
